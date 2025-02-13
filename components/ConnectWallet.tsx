@@ -1,51 +1,57 @@
-import { useMoralis } from 'react-moralis'
-import { Button, Text, LoadingDots } from '@vercel/examples-ui'
+import { useMoralis } from "react-moralis";
+import { Button, Text, LoadingDots } from "@vercel/examples-ui";
+import { useEffect } from "react";
 
-export const ConnectWallet: React.VFC = () => {
-  const { authenticate, isAuthenticating } = useMoralis()
+interface ConnectWalletProps {
+  setWallet: (wallet: string) => void; // Pasamos la dirección al componente padre
+}
 
-  const handleConnect = () => {
-    authenticate({
-      signingMessage: 'Authorize linking of your wallet to',
-    })
-  }
+export const ConnectWallet: React.VFC<ConnectWalletProps> = ({ setWallet }) => {
+  const { authenticate, isAuthenticated, user, logout, isAuthenticating } = useMoralis();
+
+  // Cuando el usuario se autentica, guardamos la dirección de su wallet
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setWallet(user.get("ethAddress"));
+    }
+  }, [isAuthenticated, user, setWallet]);
+
+  const handleConnect = async () => {
+    await authenticate({
+      signingMessage: "Authorize linking of your wallet to this application",
+    });
+  };
 
   return (
-    <div className="flex flex-col ">
+    <div className="flex flex-col">
       <Text variant="h2">Connecting your wallet</Text>
       <div className="mt-2 items-start justify-between">
         <Text className="my-6">
-          In order to mint your NFT you must connect your wallet using the{' '}
-          <a
-            className="underline"
-            href="https://metamask.io/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Metamask extension.
-          </a>{' '}
-          This will also be used to authenticate you to{' '}
-          <a
-            href="https://moralis.io/"
-            className="underline"
-            target="_blank"
-            rel="noreferrer"
-          >
+          To access the promo video, you must connect your wallet using{" "}
+          <a className="underline" href="https://metamask.io/" target="_blank" rel="noreferrer">
+            Metamask extension
+          </a>
+          . This will also be used to authenticate you anonymously via{" "}
+          <a href="https://moralis.io/" className="underline" target="_blank" rel="noreferrer">
             Moralis
-          </a>{' '}
-          anonymously.
+          </a>.
         </Text>
-        <Text>
-          Metamask sometimes presents some UX issues where it will not open
-          properly. It is good to guide users trough this process to keep
-          accessibility in mind.
-        </Text>
-        <div className="mt-12  flex justify-center">
-          <Button variant="black" size="lg" onClick={handleConnect}>
-            {isAuthenticating ? <LoadingDots /> : 'Connect Wallet'}
-          </Button>
+
+        <div className="mt-12 flex justify-center">
+          {!isAuthenticated ? (
+            <Button variant="black" size="lg" onClick={handleConnect}>
+              {isAuthenticating ? <LoadingDots /> : "Connect Wallet"}
+            </Button>
+          ) : (
+            <div className="text-center">
+              <p>✅ Wallet Connected: {user?.get("ethAddress")}</p>
+              <Button variant="black" size="lg" onClick={logout}>
+                Disconnect Wallet
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

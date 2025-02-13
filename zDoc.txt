@@ -1,0 +1,160 @@
+¿Qué cambios necesitamos hacer?
+Eliminar la funcionalidad de minteo y reemplazarla por una función de verificación de NFT.
+Permitir que el usuario conecte su wallet con ConnectWallet.tsx y validar que tenga un NFT específico.
+Verificar en la blockchain si la wallet conectada posee un NFT en el contrato predefinido.
+Si la verificación es exitosa, mostrar la URL del video alojado en Render.
+🔹 1️⃣ Modificar ConnectWallet.tsx para conectar la wallet
+El archivo ConnectWallet.tsx ya debería gestionar la conexión con la wallet, pero queremos asegurarnos de que se guarde la dirección para la verificación.
+
+🔹 Si ConnectWallet.tsx ya usa react-moralis y web3auth, puedes obtener la dirección de la wallet conectada:
+
+tsx
+Copiar
+Editar
+import { useMoralis } from "react-moralis";
+
+const ConnectWallet = () => {
+  const { authenticate, isAuthenticated, user, logout } = useMoralis();
+
+  return (
+    <div>
+      {!isAuthenticated ? (
+        <button onClick={authenticate}>Conectar Wallet</button>
+      ) : (
+        <div>
+          <p>Wallet conectada: {user?.get("ethAddress")}</p>
+          <button onClick={logout}>Desconectar</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ConnectWallet;
+🔹 2️⃣ Crear la función para verificar la posesión del NFT
+Vamos a hacer una función que consulte la blockchain y verifique si la wallet posee un NFT del contrato predefinido.
+
+📌 Ejemplo en helpers/verifyNft.helpers.ts:
+
+ts
+Copiar
+Editar
+import { ethers } from "ethers";
+
+const CONTRACT_ADDRESS = "0x123456..."; // Reemplaza con la dirección del contrato del NFT
+const ABI = [
+  "function balanceOf(address owner) view returns (uint256)"
+];
+
+export async function hasNFT(walletAddress: string) {
+  if (!walletAddress) return false;
+
+  try {
+    // Conectar con la blockchain (ejemplo con Alchemy o Infura)
+    const provider = new ethers.providers.JsonRpcProvider(
+      "https://mainnet.infura.io/v3/TU_INFURA_API_KEY"
+    );
+
+    // Instancia del contrato
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+
+    // Consultar cuántos NFTs tiene la wallet
+    const balance = await contract.balanceOf(walletAddress);
+
+    return balance.toNumber() > 0;
+  } catch (error) {
+    console.error("Error verificando NFT:", error);
+    return false;
+  }
+}
+📌 Explicación:
+
+Conectamos con la blockchain usando Infura/Alchemy.
+Creamos una instancia del contrato NFT usando su ABI y dirección.
+Consultamos balanceOf(walletAddress) para saber cuántos NFTs tiene la wallet.
+Si el balance es mayor que 0, significa que posee un NFT.
+🔹 3️⃣ Mostrar el video si la wallet posee el NFT
+En el archivo index.tsx, modificamos el código para:
+
+Conectar la wallet.
+Verificar si tiene un NFT.
+Mostrar el video si la verificación es exitosa.
+📌 Ejemplo en pages/index.tsx:
+
+tsx
+Copiar
+Editar
+import { useState } from "react";
+import { hasNFT } from "../helpers/verifyNft.helpers";
+import ConnectWallet from "../components/ConnectWallet";
+
+export default function Home() {
+  const [wallet, setWallet] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
+
+  const checkNFT = async () => {
+    if (!wallet) return;
+    const result = await hasNFT(wallet);
+    setVerified(result);
+  };
+
+  return (
+    <div>
+      <h1>Verifica tu NFT para acceder al contenido</h1>
+      <ConnectWallet setWallet={setWallet} />
+
+      {wallet && (
+        <button onClick={checkNFT}>Verificar NFT</button>
+      )}
+
+      {verified ? (
+        <div>
+          <h2>¡Acceso concedido!</h2>
+          <video width="600" controls>
+            <source src="https://render.com/tu-video.mp4" type="video/mp4" />
+            Tu navegador no soporta el tag de video.
+          </video>
+        </div>
+      ) : (
+        wallet && <p>No tienes el NFT necesario.</p>
+      )}
+    </div>
+  );
+}
+📌 Explicación:
+
+ConnectWallet obtiene la dirección de la wallet.
+checkNFT() verifica si la wallet tiene el NFT.
+Si el usuario posee el NFT, se muestra el video alojado en Render.
+🔹 4️⃣ Opcional: Mejorar la UX con loading y feedback
+Podemos agregar un loading mientras se verifica el NFT:
+
+tsx
+Copiar
+Editar
+const [loading, setLoading] = useState(false);
+
+const checkNFT = async () => {
+  setLoading(true);
+  if (!wallet) return;
+  const result = await hasNFT(wallet);
+  setVerified(result);
+  setLoading(false);
+};
+Y en el JSX:
+
+tsx
+Copiar
+Editar
+{loading ? <p>Verificando NFT...</p> : <button onClick={checkNFT}>Verificar NFT</button>}
+🔹 5️⃣ Últimos pasos
+✅ Eliminar los componentes innecesarios como Mint.tsx y UploadNft.tsx
+✅ Revisar que ConnectWallet.tsx devuelve la dirección de la wallet correctamente
+✅ Probar que al conectar una wallet sin el NFT, no se muestre el video
+✅ Hacer git add ., git commit -m "Verificación de NFT", git push y desplegar en Vercel
+
+🚀 ¡Conclusión!
+🔹 Hemos transformado el proyecto de minteo en una interfaz de verificación de NFT.
+🔹 Si la wallet tiene un NFT del contrato específico, se muestra el video alojado en Render.
+🔹 Se han eliminado los componentes innecesarios y optimizado la UX.
+
