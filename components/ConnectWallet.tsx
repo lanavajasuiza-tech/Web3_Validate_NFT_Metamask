@@ -1,52 +1,96 @@
-import { useMoralis } from "react-moralis";
-import { Button, Text, LoadingDots } from "@vercel/examples-ui";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Button, Text } from "@vercel/examples-ui";
 
 interface ConnectWalletProps {
-  setWallet: (wallet: string) => void; // Pasamos la dirección al componente padre
+  setWallet: (wallet: string | null) => void;
 }
 
 export const ConnectWallet: React.VFC<ConnectWalletProps> = ({ setWallet }) => {
-  const { authenticate, isAuthenticated, user, logout, isAuthenticating } = useMoralis();
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
-  // Cuando el usuario se autentica, guardamos la dirección de su wallet
   useEffect(() => {
-    if (isAuthenticated && user) {
-      setWallet(user.get("ethAddress"));
-    }
-  }, [isAuthenticated, user, setWallet]);
+    const checkIfWalletIsConnected = async () => {
+      if (
+        typeof window !== "undefined" &&
+        window.ethereum &&
+        window.ethereum.isMetaMask
+      ) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) {
+            const address = accounts[0];
+            setWalletAddress(address);
+            setWallet(address);
+          }
+        } catch (error) {
+          console.error("Error comprobando la conexión de la wallet:", error);
+        }
+      } else {
+        console.warn("MetaMask no está disponible o no está instalado.");
+      }
+    };
+    checkIfWalletIsConnected();
+  }, [setWallet]);
 
-  const handleConnect = async () => {
-    await authenticate({
-      signingMessage: "Authorize linking of your wallet to this application",
-    });
+  const connectWallet = async () => {
+    if (!window.ethereum || !window.ethereum.isMetaMask) {
+      alert("MetaMask no está instalado o no está disponible. Instálalo para continuar.");
+      return;
+    }
+    try {
+      setIsConnecting(true);
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (accounts.length === 0) {
+        console.error("No se encontraron cuentas en MetaMask.");
+        return;
+      }
+      const address = accounts[0];
+      setWalletAddress(address);
+      setWallet(address);
+    } catch (error: any) {
+      if (error.code === 4001) {
+        // El usuario rechazó la solicitud
+        console.error("El usuario rechazó la solicitud de conexión.");
+      } else {
+        console.error("Error al conectar la wallet:", error);
+      }
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const disconnectWallet = () => {
+    setWalletAddress(null);
+    setWallet(null);
   };
 
   return (
     <div className="flex flex-col">
-      <Text variant="h2">Connecting your wallet</Text>
+      <Text variant="h2">Conectar Wallet</Text>
       <div className="mt-2 items-start justify-between">
         <Text className="my-6">
-          To access the promo video, you must connect your wallet using{" "}
-          <a className="underline" href="https://metamask.io/" target="_blank" rel="noreferrer">
-            Metamask extension
+          Para acceder al contenido, conecta tu wallet usando{" "}
+          <a
+            className="underline"
+            href="https://metamask.io/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            MetaMask
           </a>
-          . This will also be used to authenticate you anonymously via{" "}
-          <a href="https://moralis.io/" className="underline" target="_blank" rel="noreferrer">
-            Moralis
-          </a>.
+          .
         </Text>
-
         <div className="mt-12 flex justify-center">
-          {!isAuthenticated ? (
-            <Button variant="black" size="lg" onClick={handleConnect}>
-              {isAuthenticating ? <LoadingDots /> : "Connect Wallet"}
+          {!walletAddress ? (
+            <Button variant="black" size="lg" onClick={connectWallet} disabled={isConnecting}>
+              {isConnecting ? "Conectando..." : "Conectar Wallet"}
             </Button>
           ) : (
             <div className="text-center">
-              <p>✅ Wallet Connected: {user?.get("ethAddress")}</p>
-              <Button variant="black" size="lg" onClick={logout}>
-                Disconnect Wallet
+              <p>✅ Wallet Conectada: {walletAddress}</p>
+              <Button variant="black" size="lg" onClick={disconnectWallet}>
+                Desconectar Wallet
               </Button>
             </div>
           )}

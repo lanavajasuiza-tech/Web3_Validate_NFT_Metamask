@@ -1,29 +1,21 @@
-import type { AppProps } from 'next/app'
-import type { LayoutProps } from '@vercel/examples-ui/layout'
-import { MoralisProvider } from 'react-moralis'
+import type { AppProps } from "next/app";
+import type { LayoutProps } from "@vercel/examples-ui/layout";
 
-import { getLayout } from '@vercel/examples-ui'
-
-import '@vercel/examples-ui/globals.css'
+import { getLayout } from "@vercel/examples-ui";
+import "@vercel/examples-ui/globals.css";
 
 function App({ Component, pageProps }: AppProps) {
-  const Layout = getLayout<LayoutProps>(Component)
+  const Layout = getLayout<LayoutProps>(Component);
 
   return (
     <Layout
-      title="mint-nft"
-      path="solutions/mint-nft"
-      description="How to mint an NFT"
+      title="Verify NFT Access"
+      path="solutions/verify-nft"
+      description="How to verify NFT ownership"
     >
-      <MoralisProvider
-        appId={process.env.NEXT_PUBLIC_APP_ID!}
-        serverUrl={process.env.NEXT_PUBLIC_SERVER_URL!}
-        initializeOnMount
-      >
-        <Component {...pageProps} />
-      </MoralisProvider>
+      <Component {...pageProps} />
     </Layout>
-  )
+  );
 }
 
-export default App
+export default App;
