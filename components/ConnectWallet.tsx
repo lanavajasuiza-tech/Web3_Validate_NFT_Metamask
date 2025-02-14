@@ -1,101 +1,72 @@
-import { useState, useEffect } from "react";
-import { Button, Text } from "@vercel/examples-ui";
+import React, { useState } from "react";
 
-interface ConnectWalletProps {
-  setWallet: (wallet: string | null) => void;
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
 }
 
-export const ConnectWallet: React.VFC<ConnectWalletProps> = ({ setWallet }) => {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
+/**
+ * Este componente solicita la conexión con MetaMask y devuelve
+ * la dirección de la wallet conectada a través de la función `onConnect`.
+ */
+interface ConnectWalletProps {
+  onConnect: (address: string) => void;
+}
 
-  useEffect(() => {
-    const checkIfWalletIsConnected = async () => {
-      if (
-        typeof window !== "undefined" &&
-        window.ethereum &&
-        window.ethereum.isMetaMask
-      ) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (accounts.length > 0) {
-            const address = accounts[0];
-            setWalletAddress(address);
-            setWallet(address);
-          }
-        } catch (error) {
-          console.error("Error comprobando la conexión de la wallet:", error);
-        }
-      } else {
-        console.warn("MetaMask no está disponible o no está instalado.");
-      }
-    };
-    checkIfWalletIsConnected();
-  }, [setWallet]);
+export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
 
-  const connectWallet = async () => {
-    if (!window.ethereum || !window.ethereum.isMetaMask) {
-      alert("MetaMask no está instalado o no está disponible. Instálalo para continuar.");
-      return;
-    }
+  const handleConnectMetamask = async () => {
     try {
+      setError(null);
       setIsConnecting(true);
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (accounts.length === 0) {
-        console.error("No se encontraron cuentas en MetaMask.");
-        return;
+
+      if (typeof window === "undefined" || !window.ethereum) {
+        throw new Error("MetaMask no está disponible.");
       }
+
+      // Solicita las cuentas conectadas en MetaMask
+      const accounts: string[] = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No se encontraron cuentas en MetaMask.");
+      }
+
       const address = accounts[0];
-      setWalletAddress(address);
-      setWallet(address);
-    } catch (error: any) {
-      if (error.code === 4001) {
-        // El usuario rechazó la solicitud
-        console.error("El usuario rechazó la solicitud de conexión.");
-      } else {
-        console.error("Error al conectar la wallet:", error);
-      }
+      onConnect(address);
+    } catch (err: any) {
+      console.error("Error al conectar MetaMask:", err);
+      setError(err?.message || "Ocurrió un error desconocido.");
     } finally {
       setIsConnecting(false);
     }
   };
 
-  const disconnectWallet = () => {
-    setWalletAddress(null);
-    setWallet(null);
-  };
-
   return (
-    <div className="flex flex-col">
-      <Text variant="h2">Conectar Wallet</Text>
-      <div className="mt-2 items-start justify-between">
-        <Text className="my-6">
-          Para acceder al contenido, conecta tu wallet usando{" "}
-          <a
-            className="underline"
-            href="https://metamask.io/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            MetaMask
-          </a>
-          .
-        </Text>
-        <div className="mt-12 flex justify-center">
-          {!walletAddress ? (
-            <Button variant="black" size="lg" onClick={connectWallet} disabled={isConnecting}>
-              {isConnecting ? "Conectando..." : "Conectar Wallet"}
-            </Button>
-          ) : (
-            <div className="text-center">
-              <p>✅ Wallet Conectada: {walletAddress}</p>
-              <Button variant="black" size="lg" onClick={disconnectWallet}>
-                Desconectar Wallet
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+    <div style={{ textAlign: "center", marginTop: "20px" }}>
+      <h2>Conectar Wallet</h2>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <button
+        onClick={handleConnectMetamask}
+        disabled={isConnecting}
+        style={{
+          backgroundColor: "#f6851b",
+          color: "white",
+          border: "none",
+          padding: "10px 20px",
+          borderRadius: "5px",
+          cursor: "pointer",
+          fontSize: "16px",
+        }}
+      >
+        {isConnecting ? "Conectando..." : "Conectar con MetaMask"}
+      </button>
     </div>
   );
-};
+}

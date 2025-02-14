@@ -1,8 +1,5 @@
 import { ethers } from "ethers";
-import contractData from "./contractABI.json";
-
-const CONTRACT_ADDRESS = contractData.contractAddress;
-const CONTRACT_ABI = contractData.abi;
+import contractData from "../helpers/contractABI.json"; // Importa el JSON
 
 declare global {
   interface Window {
@@ -10,41 +7,25 @@ declare global {
   }
 }
 
-export const hasNFT = async (wallet: string): Promise<boolean> => {
+const CONTRACT_ADDRESS = "0xc37EaF55367a7bb08A366284050eAd92f1D79fF9";
+const CONTRACT_ABI = contractData.abi; // Extrae solo el ABI
+
+export async function verifyNftOwnership(userAddress: string): Promise<boolean> {
   try {
-    if (!window.ethereum) {
-      console.error("MetaMask no está instalado.");
-      return false;
+    if (typeof window === "undefined" || !window.ethereum) {
+      throw new Error("Metamask no está disponible en este entorno.");
     }
 
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []); // Asegurarse de que el usuario ha dado acceso
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    const provider = new ethers.providers.Web3Provider(window.ethereum as any);
+    const nftContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 
-    const tokenId = 19; // Especifica el Token ID que quieres verificar
+    const balance = await nftContract.balanceOf(userAddress);
 
-    // Verificar si la wallet es dueña del Token ID 19
-    let owner;
-    try {
-      owner = await contract.ownerOf(tokenId);
-      console.log(`El propietario del Token ID ${tokenId} es: ${owner}`);
-    } catch (error: any) {
-      // Si el token no existe o hay otro error
-      if (error.reason && error.reason.includes("ERC721: invalid token ID")) {
-        console.error(`El Token ID ${tokenId} no existe.`);
-      } else {
-        console.error("Error al obtener el propietario del Token ID:", error.message);
-      }
-      return false;
-    }
+    console.log(`Balance en blockchain de ${userAddress}: ${balance.toString()}`);
 
-    // Comparar las direcciones en minúsculas para evitar problemas de mayúsculas/minúsculas
-    const walletLower = wallet.toLowerCase();
-    const ownerLower = owner.toLowerCase();
-
-    return walletLower === ownerLower;
+    return balance.gt(0);
   } catch (error: any) {
-    console.error("Error verificando NFT:", error.message);
+    console.error("Error verificando NFT en la blockchain:", error.message);
     return false;
   }
-};
+}
