@@ -8,7 +8,6 @@ css: Tailwind
 deployUrl: https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/solutions/mint-nft&project-name=mint-nft&repository-name=mint-nft&env=NEXT_PUBLIC_APP_ID,NEXT_PUBLIC_SERVER_URL,NEXT_PUBLIC_SERVER_DOMAIN
 demoUrl: https://solutions-mint-nft.vercel.app
 ---
-
 # mint-nft example
 
 This example shows how to mint an NFT using Next.js and [Moralis](https://moralis.io/)
@@ -42,3 +41,5 @@ pnpm dev
 ```
 
 Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&utm_medium=readme&utm_campaign=edge-middleware-eap) ([Documentation](https://nextjs.org/docs/deployment)).
+
+Thanks
